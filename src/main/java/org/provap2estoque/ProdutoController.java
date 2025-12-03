@@ -1,20 +1,19 @@
 package org.provap2estoque;
 
+import org.DAO.DaoProduto;
 import org.model.Produto;
 import javafx.fxml.FXML;
 import javafx.scene.control.Alert;
 import javafx.scene.control.TableColumn;
 import javafx.scene.control.TableView;
-import javafx.scene.control.TextInputDialog;
-import javafx.scene.control.cell.PropertyValueFactory;
-import javafx.collections.FXCollections;
-import javafx.collections.ObservableList;
 import javafx.scene.control.Dialog;
 import javafx.scene.control.ButtonType;
 import javafx.scene.control.TextField;
 import javafx.scene.layout.GridPane;
 import javafx.scene.control.Label;
 import javafx.geometry.Insets;
+import javafx.collections.FXCollections;
+import javafx.collections.ObservableList;
 
 import java.util.Optional;
 
@@ -33,12 +32,13 @@ public class ProdutoController {
     private TableColumn<Produto, Double> colPreco;
 
     private final ObservableList<Produto> listaProdutos = FXCollections.observableArrayList();
+    private final DaoProduto daoProduto = new DaoProduto();
 
     @FXML
     public void initialize() {
         System.out.println("=== INITIALIZE CHAMADO ===");
 
-        // Método alternativo e mais robusto usando cellValueFactory com lambda
+        // Configurar as colunas usando lambda (mais robusto)
         colID.setCellValueFactory(cellData ->
                 new javafx.beans.property.SimpleIntegerProperty(cellData.getValue().getId()).asObject());
 
@@ -53,19 +53,25 @@ public class ProdutoController {
 
         tabelaProdutos.setItems(listaProdutos);
 
-        System.out.println("Tamanho da lista antes: " + listaProdutos.size());
-
-
-        System.out.println("Tamanho da lista depois: " + listaProdutos.size());
-        System.out.println("Items da tabela: " + tabelaProdutos.getItems().size());
-
-        System.out.println("=== Produtos adicionados ===");
-        for (Produto p : listaProdutos) {
-            System.out.println("ID: " + p.getId() + " | Nome: " + p.getNome() +
-                    " | Qtd: " + p.getQuantidade() + " | Preço: " + p.getPreco());
-        }
+        // Carregar produtos do banco de dados
+        carregarProdutos();
 
         System.out.println("=== FIM INITIALIZE ===");
+    }
+
+    /**
+     * Carrega os produtos do banco de dados usando JPA
+     */
+    private void carregarProdutos() {
+        try {
+            listaProdutos.clear();
+            listaProdutos.addAll(daoProduto.listarTodos());
+            System.out.println("✅ " + listaProdutos.size() + " produtos carregados do banco");
+        } catch (Exception e) {
+            System.err.println("❌ Erro ao carregar produtos: " + e.getMessage());
+            mostrarAlerta("Erro", "Erro ao carregar produtos do banco de dados!", Alert.AlertType.ERROR);
+            e.printStackTrace();
+        }
     }
 
     @FXML
@@ -88,9 +94,11 @@ public class ProdutoController {
 
         TextField quantidadeField = new TextField();
         quantidadeField.setPromptText("Quantidade");
+        quantidadeField.setText("0");
 
         TextField precoField = new TextField();
         precoField.setPromptText("Preço");
+        precoField.setText("0.00");
 
         grid.add(new Label("Nome:"), 0, 0);
         grid.add(nomeField, 1, 0);
@@ -102,47 +110,85 @@ public class ProdutoController {
         dialog.getDialogPane().setContent(grid);
         dialog.getDialogPane().getButtonTypes().addAll(ButtonType.OK, ButtonType.CANCEL);
 
+        // Focar no campo nome
+        nomeField.requestFocus();
+
         // Processar o resultado
         Optional<ButtonType> result = dialog.showAndWait();
 
         if (result.isPresent() && result.get() == ButtonType.OK) {
-            System.out.println("Usuário clicou OK");
             try {
                 String nome = nomeField.getText().trim();
                 int quantidade = Integer.parseInt(quantidadeField.getText().trim());
-                double preco = Double.parseDouble(precoField.getText().trim());
-
-                System.out.println("Dados lidos: " + nome + ", " + quantidade + ", " + preco);
+                double preco = Double.parseDouble(precoField.getText().trim().replace(",", "."));
 
                 if (nome.isEmpty()) {
                     mostrarAlerta("Erro", "O nome do produto não pode estar vazio!", Alert.AlertType.ERROR);
                     return;
                 }
 
-                int novoId = listaProdutos.size() + 1;
-                Produto novoProduto = new Produto(novoId, nome, quantidade, preco);
-                listaProdutos.add(novoProduto);
+                if (quantidade < 0) {
+                    mostrarAlerta("Erro", "A quantidade não pode ser negativa!", Alert.AlertType.ERROR);
+                    return;
+                }
 
-                System.out.println("Produto adicionado! Total de produtos: " + listaProdutos.size());
-                System.out.println("Produto: " + novoProduto.getId() + " - " + novoProduto.getNome());
+                if (preco < 0) {
+                    mostrarAlerta("Erro", "O preço não pode ser negativo!", Alert.AlertType.ERROR);
+                    return;
+                }
 
+                // Criar o produto (ID será gerado automaticamente pelo JPA)
+                Produto novoProduto = new Produto(0, nome, quantidade, preco);
+
+                // Salvar no banco usando JPA
+                daoProduto.cadastrar(novoProduto);
+
+                // Recarregar a tabela
+                carregarProdutos();
+
+                System.out.println("✅ Produto adicionado: " + nome);
                 mostrarAlerta("Sucesso", "Produto adicionado com sucesso!", Alert.AlertType.INFORMATION);
 
             } catch (NumberFormatException e) {
-                System.out.println("Erro ao converter números: " + e.getMessage());
-                mostrarAlerta("Erro", "Quantidade deve ser um número inteiro e Preço deve ser um número válido!", Alert.AlertType.ERROR);
+                mostrarAlerta("Erro", "Quantidade deve ser um número inteiro e Preço deve ser um número válido!\nUse ponto (.) como separador decimal.", Alert.AlertType.ERROR);
+            } catch (Exception e) {
+                System.err.println("❌ Erro ao adicionar produto: " + e.getMessage());
+                mostrarAlerta("Erro", "Erro ao adicionar produto: " + e.getMessage(), Alert.AlertType.ERROR);
+                e.printStackTrace();
             }
-        } else {
-            System.out.println("Usuário cancelou");
         }
     }
 
     @FXML
     private void handleExcluirProduto() {
         Produto selecionado = tabelaProdutos.getSelectionModel().getSelectedItem();
+
         if (selecionado != null) {
-            listaProdutos.remove(selecionado);
-            mostrarAlerta("Sucesso", "Produto excluído com sucesso!", Alert.AlertType.INFORMATION);
+            // Confirmar exclusão
+            Alert confirmacao = new Alert(Alert.AlertType.CONFIRMATION);
+            confirmacao.setTitle("Confirmar Exclusão");
+            confirmacao.setHeaderText("Deseja realmente excluir o produto?");
+            confirmacao.setContentText("Produto: " + selecionado.getNome() + "\nID: " + selecionado.getId());
+
+            Optional<ButtonType> resultado = confirmacao.showAndWait();
+
+            if (resultado.isPresent() && resultado.get() == ButtonType.OK) {
+                try {
+                    // Remover do banco usando JPA
+                    daoProduto.remover(selecionado);
+
+                    // Recarregar a tabela
+                    carregarProdutos();
+
+                    System.out.println("✅ Produto excluído: " + selecionado.getNome());
+                    mostrarAlerta("Sucesso", "Produto excluído com sucesso!", Alert.AlertType.INFORMATION);
+
+                } catch (Exception e) {
+                    System.err.println("❌ Erro ao excluir produto: " + e.getMessage());
+                    mostrarAlerta("Erro", "Erro ao excluir produto: " + e.getMessage(), Alert.AlertType.ERROR);
+                    e.printStackTrace();
+                }
+            }
         } else {
             mostrarAlerta("Aviso", "Nenhum produto selecionado!", Alert.AlertType.WARNING);
         }
@@ -150,9 +196,19 @@ public class ProdutoController {
 
     @FXML
     private void handleAtualizarProduto() {
-        tabelaProdutos.refresh();
+        try {
+            carregarProdutos();
+            System.out.println("✅ Tabela atualizada");
+            mostrarAlerta("Sucesso", "Tabela atualizada com sucesso!", Alert.AlertType.INFORMATION);
+        } catch (Exception e) {
+            System.err.println("❌ Erro ao atualizar: " + e.getMessage());
+            mostrarAlerta("Erro", "Erro ao atualizar tabela!", Alert.AlertType.ERROR);
+        }
     }
 
+    /**
+     * Método auxiliar para mostrar alertas
+     */
     private void mostrarAlerta(String titulo, String mensagem, Alert.AlertType tipo) {
         Alert alert = new Alert(tipo);
         alert.setTitle(titulo);

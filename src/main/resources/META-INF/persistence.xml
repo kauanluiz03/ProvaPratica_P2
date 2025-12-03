@@ -8,6 +8,9 @@
             Persistence unit for the Jakarta Persistence tutorial of the Hibernate Getting Started Guide
         </description>
 
+        <!-- ADICIONE ESTA LINHA: -->
+        <provider>org.hibernate.jpa.HibernatePersistenceProvider</provider>
+
         <class>org.model.Produto</class>
 
         <properties>
@@ -16,13 +19,17 @@
             <property name="jakarta.persistence.jdbc.user" value="postgres" />
             <property name="jakarta.persistence.jdbc.password" value="postgres" />
 
-            <!-- Automatically export the schema -->
-            <property name="jakarta.persistence.schema-generation.database.action" value="create" />
+            <!-- MUDE DE create PARA update: -->
+            <property name="jakarta.persistence.schema-generation.database.action" value="update" />
 
             <!-- Echo all executed SQL to console -->
             <property name="hibernate.show_sql" value="true" />
             <property name="hibernate.format_sql" value="true" />
             <property name="hibernate.highlight_sql" value="true" />
+
+            <!-- ADICIONE ESTAS LINHAS IMPORTANTES: -->
+            <property name="hibernate.dialect" value="org.hibernate.dialect.PostgreSQLDialect"/>
+            <property name="hibernate.hbm2ddl.auto" value="update"/>
         </properties>
 
     </persistence-unit>

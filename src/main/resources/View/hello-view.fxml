@@ -9,35 +9,33 @@
 <?import javafx.scene.layout.VBox?>
 <?import javafx.scene.text.Font?>
 
-<VBox fx:controller="org.provap2estoque.ProdutoController"
-      prefHeight="400.0" prefWidth="600.0"
-      xmlns="http://javafx.com/javafx/17.0.6" xmlns:fx="http://javafx.com/fxml/1">
+<VBox prefHeight="400.0" prefWidth="600.0" xmlns="http://javafx.com/javafx/24.0.1" xmlns:fx="http://javafx.com/fxml/1" fx:controller="org.provap2estoque.ProdutoController">
    <children>
       <Label text="Lista de Produtos">
          <font>
-            <Font name="System Bold" size="18.0"/>
+            <Font name="System Bold" size="18.0" />
          </font>
       </Label>
 
       <!-- HBox com padding e espaçamento corrigidos -->
       <HBox spacing="30.0">
          <children>
-            <Button text="Adicionar Produto" onAction="#handleAdicionarProduto"/>
-            <Button text="Excluir Produto" onAction="#handleExcluirProduto"/>
-            <Button text="Atualizar Produtos" onAction="#handleAtualizarProduto"/>
+            <Button onAction="#handleAdicionarProduto" text="Adicionar Produto" />
+            <Button onAction="#handleExcluirProduto" text="Excluir Produto" />
+            <Button onAction="#handleAtualizarProduto" text="Atualizar Produtos" />
          </children>
          <padding>
-            <Insets top="30.0" right="30.0" bottom="30.0" left="30.0"/>
+            <Insets bottom="30.0" left="30.0" right="30.0" top="30.0" />
          </padding>
       </HBox>
 
       <!-- TableView -->
       <TableView fx:id="tabelaProdutos" prefHeight="300.0">
          <columns>
-            <TableColumn fx:id="colID" text="ID" prefWidth="50"/>
-            <TableColumn fx:id="colProduto" text="Produto" prefWidth="150"/>
-            <TableColumn fx:id="colQuantidade" text="Quantidade" prefWidth="100"/>
-            <TableColumn fx:id="colPreco" text="Preço" prefWidth="100"/>
+            <TableColumn fx:id="colID" prefWidth="50" text="ID" />
+            <TableColumn fx:id="colProduto" prefWidth="150" text="Produto" />
+            <TableColumn fx:id="colQuantidade" prefWidth="100" text="Quantidade" />
+            <TableColumn fx:id="colPreco" prefWidth="100" text="Preço" />
          </columns>
       </TableView>
    </children>
