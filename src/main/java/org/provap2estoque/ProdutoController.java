@@ -66,9 +66,9 @@ public class ProdutoController {
         try {
             listaProdutos.clear();
             listaProdutos.addAll(daoProduto.listarTodos());
-            System.out.println("✅ " + listaProdutos.size() + " produtos carregados do banco");
+            System.out.println(" " + listaProdutos.size() + " produtos carregados do banco");
         } catch (Exception e) {
-            System.err.println("❌ Erro ao carregar produtos: " + e.getMessage());
+            System.err.println(" Erro ao carregar produtos: " + e.getMessage());
             mostrarAlerta("Erro", "Erro ao carregar produtos do banco de dados!", Alert.AlertType.ERROR);
             e.printStackTrace();
         }
@@ -146,13 +146,13 @@ public class ProdutoController {
                 // Recarregar a tabela
                 carregarProdutos();
 
-                System.out.println("✅ Produto adicionado: " + nome);
+                System.out.println("Produto adicionado: " + nome);
                 mostrarAlerta("Sucesso", "Produto adicionado com sucesso!", Alert.AlertType.INFORMATION);
 
             } catch (NumberFormatException e) {
                 mostrarAlerta("Erro", "Quantidade deve ser um número inteiro e Preço deve ser um número válido!\nUse ponto (.) como separador decimal.", Alert.AlertType.ERROR);
             } catch (Exception e) {
-                System.err.println("❌ Erro ao adicionar produto: " + e.getMessage());
+                System.err.println(" Erro ao adicionar produto: " + e.getMessage());
                 mostrarAlerta("Erro", "Erro ao adicionar produto: " + e.getMessage(), Alert.AlertType.ERROR);
                 e.printStackTrace();
             }
@@ -180,11 +180,11 @@ public class ProdutoController {
                     // Recarregar a tabela
                     carregarProdutos();
 
-                    System.out.println("✅ Produto excluído: " + selecionado.getNome());
+                    System.out.println(" Produto excluído: " + selecionado.getNome());
                     mostrarAlerta("Sucesso", "Produto excluído com sucesso!", Alert.AlertType.INFORMATION);
 
                 } catch (Exception e) {
-                    System.err.println("❌ Erro ao excluir produto: " + e.getMessage());
+                    System.err.println(" Erro ao excluir produto: " + e.getMessage());
                     mostrarAlerta("Erro", "Erro ao excluir produto: " + e.getMessage(), Alert.AlertType.ERROR);
                     e.printStackTrace();
                 }
@@ -194,15 +194,91 @@ public class ProdutoController {
         }
     }
 
+
     @FXML
     private void handleAtualizarProduto() {
-        try {
-            carregarProdutos();
-            System.out.println("✅ Tabela atualizada");
-            mostrarAlerta("Sucesso", "Tabela atualizada com sucesso!", Alert.AlertType.INFORMATION);
-        } catch (Exception e) {
-            System.err.println("❌ Erro ao atualizar: " + e.getMessage());
-            mostrarAlerta("Erro", "Erro ao atualizar tabela!", Alert.AlertType.ERROR);
+        Produto selecionado = tabelaProdutos.getSelectionModel().getSelectedItem();
+
+        if (selecionado == null) {
+            mostrarAlerta("Aviso", "Selecione um produto para editar!", Alert.AlertType.WARNING);
+            return;
+        }
+
+        System.out.println("Editando produto: " + selecionado.getNome());
+
+        // Criar o diálogo de edição
+        Dialog<ButtonType> dialog = new Dialog<>();
+        dialog.setTitle("Editar Produto");
+        dialog.setHeaderText("Edite os dados do produto:");
+
+        // Criar os campos de entrada PRÉ-PREENCHIDOS
+        GridPane grid = new GridPane();
+        grid.setHgap(10);
+        grid.setVgap(10);
+        grid.setPadding(new Insets(20, 150, 10, 10));
+
+        TextField nomeField = new TextField(selecionado.getNome());
+        TextField quantidadeField = new TextField(String.valueOf(selecionado.getQuantidade()));
+        TextField precoField = new TextField(String.valueOf(selecionado.getPreco()));
+
+        grid.add(new Label("Nome:"), 0, 0);
+        grid.add(nomeField, 1, 0);
+        grid.add(new Label("Quantidade:"), 0, 1);
+        grid.add(quantidadeField, 1, 1);
+        grid.add(new Label("Preço:"), 0, 2);
+        grid.add(precoField, 1, 2);
+
+        dialog.getDialogPane().setContent(grid);
+        dialog.getDialogPane().getButtonTypes().addAll(ButtonType.OK, ButtonType.CANCEL);
+
+        nomeField.requestFocus();
+        nomeField.selectAll();
+
+        // Processar o resultado
+        Optional<ButtonType> result = dialog.showAndWait();
+
+        if (result.isPresent() && result.get() == ButtonType.OK) {
+            try {
+                String nome = nomeField.getText().trim();
+                int quantidade = Integer.parseInt(quantidadeField.getText().trim());
+                double preco = Double.parseDouble(precoField.getText().trim().replace(",", "."));
+
+                if (nome.isEmpty()) {
+                    mostrarAlerta("Erro", "O nome do produto não pode estar vazio!", Alert.AlertType.ERROR);
+                    return;
+                }
+
+                if (quantidade < 0) {
+                    mostrarAlerta("Erro", "A quantidade não pode ser negativa!", Alert.AlertType.ERROR);
+                    return;
+                }
+
+                if (preco < 0) {
+                    mostrarAlerta("Erro", "O preço não pode ser negativo!", Alert.AlertType.ERROR);
+                    return;
+                }
+
+                // Atualizar os dados do produto
+                selecionado.setNome(nome);
+                selecionado.setQuantidade(quantidade);
+                selecionado.setPreco(preco);
+
+                // Atualizar no banco usando JPA
+                daoProduto.atualizar(selecionado);
+
+                // Recarregar a tabela
+                carregarProdutos();
+
+                System.out.println(" Produto atualizado: " + nome);
+                mostrarAlerta("Sucesso", "Produto atualizado com sucesso!", Alert.AlertType.INFORMATION);
+
+            } catch (NumberFormatException e) {
+                mostrarAlerta("Erro", "Quantidade deve ser um número inteiro e Preço deve ser um número válido!\nUse ponto (.) como separador decimal.", Alert.AlertType.ERROR);
+            } catch (Exception e) {
+                System.err.println(" Erro ao atualizar produto: " + e.getMessage());
+                mostrarAlerta("Erro", "Erro ao atualizar produto: " + e.getMessage(), Alert.AlertType.ERROR);
+                e.printStackTrace();
+            }
         }
     }
 

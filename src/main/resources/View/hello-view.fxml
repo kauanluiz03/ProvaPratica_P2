@@ -22,7 +22,7 @@
          <children>
             <Button onAction="#handleAdicionarProduto" text="Adicionar Produto" />
             <Button onAction="#handleExcluirProduto" text="Excluir Produto" />
-            <Button onAction="#handleAtualizarProduto" text="Atualizar Produtos" />
+            <Button onAction="#handleAtualizarProduto" text="Editar Produtos" />
          </children>
          <padding>
             <Insets bottom="30.0" left="30.0" right="30.0" top="30.0" />
